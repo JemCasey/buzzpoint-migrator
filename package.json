@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "initDB": "rm database.db && node init-schema.js && node migrate-question-sets.js && node migrate-tournaments.js",
+    "updateDB": "node migrate-question-sets.js && node migrate-tournaments.js",
+    "deleteDB": "rm database.db"
+  },
+  "dependencies": {
+    "better-sqlite3": "^8.4.0",
+    "slugify": "^1.6.6"
+  }
+}

@@ -1,0 +1,11 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug",
+        "type": "node-terminal",
+        "request": "launch",
+        "command": "rm database.db && node init-schema.js && node migrate-question-sets.js"
+      }
+    ]
+  }
