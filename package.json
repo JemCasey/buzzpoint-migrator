@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "initDB": "rm database.db && node init-schema.js && node migrate-question-sets.js && node migrate-tournaments.js",
+    "initDB": "rm -f database.db && node init-schema.js && node migrate-question-sets.js && node migrate-tournaments.js",
     "updateDB": "node migrate-question-sets.js && node migrate-tournaments.js",
     "deleteDB": "rm database.db"
   },

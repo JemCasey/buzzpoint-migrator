@@ -71,18 +71,18 @@ fs.readdir(questionSetsPath, (err, subFolders) => {
                                 }
     
                                 try {
+                                    const regex = new RegExp(questionSet.metadata_regex);
                                     const packetData = JSON.parse(packetDataContent);
                                     const { lastInsertRowid: packetId } = insertPacketStatement.run(questionSetId, roundName);
     
                                     packetData.tossups.forEach(({ question, answer, metadata }, index) => {
-                                        //(.+?), (.*)?&gt;.*Editor: (.*)
-                                        const [ _, author, categoryData, editor ] = metadata.match(/(.+?), (.+?)/);
+                                        const [ _, author, categoryData, editor ] = metadata.match(regex);
                                         const [ category, subcategory, subsubcategory ] = categoryData.split(' - ');
                                         insertTossupStatement.run(packetId, index + 1, question, answer, slugify(shortenAnswerline(removeTags(answer)).slice(0, 50), slugifyOptions), metadata, author, editor, category, subcategory, subsubcategory);
                                     });
                 
                                     packetData.bonuses.forEach(({ leadin, leadin_sanitized, metadata, answers, answers_sanitized, parts, parts_sanitized, values, difficultyModifiers }, index) => {
-                                        const [ _, author, categoryData, editor ] = metadata.match(/(.+?), (.+?)/);
+                                        const [ _, author, categoryData, editor ] = metadata.match(regex);
                                         const [ category, subcategory, subsubcategory ] = categoryData.split(' - ');
                                         const { lastInsertRowid: bonusId } = insertBonusStatement.run(
                                             packetId, 

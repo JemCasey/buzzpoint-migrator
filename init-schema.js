@@ -38,7 +38,7 @@ db.exec(`
     category TEXT,
     subcategory TEXT,
     subsubcategory TEXT,
-    category_full TEXT GENERATED ALWAYS AS (category || ' - ' || subcategory || case when subsubcategory is null then '' else (' - ' || subsubcategory) end) STORED,
+    category_full TEXT GENERATED ALWAYS AS (case when subcategory is null then category else (category || ' - ' || subcategory || case when subsubcategory is null then '' else (' - ' || subsubcategory) end) end) STORED,
     FOREIGN KEY (packet_id) REFERENCES packet (id) ON DELETE CASCADE
   )
 `);
@@ -58,7 +58,7 @@ db.exec(`
     category TEXT,
     subcategory TEXT,
     subsubcategory TEXT,
-    category_full TEXT GENERATED ALWAYS AS (category || ' - ' || subcategory || case when subsubcategory is null then '' else (' - ' || subsubcategory) end) STORED,
+    category_full TEXT GENERATED ALWAYS AS (case when subcategory is null then category else (category || ' - ' || subcategory || case when subsubcategory is null then '' else (' - ' || subsubcategory) end) end) STORED,
     FOREIGN KEY (packet_id) REFERENCES packet (id) ON DELETE CASCADE
   )
 `);
@@ -101,6 +101,7 @@ db.exec(`
     tournament_id INTEGER,
     number INTEGER,
     packet_id INTEGER,
+    exclude_from_individual BIT DEFAULT 0,
     FOREIGN KEY (tournament_id) REFERENCES tournament (id) ON DELETE CASCADE,
     FOREIGN KEY (packet_id) REFERENCES packet (id) ON DELETE CASCADE
   )

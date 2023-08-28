@@ -12,7 +12,7 @@ const tournamentsPath = './data/tournaments';
 const gamesFolderName = 'game_files';
 
 const insertTournamentStatement = db.prepare('INSERT INTO tournament (name, slug, question_set_id, location, level, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?, ?)');
-const insertRoundStatement = db.prepare('INSERT INTO round (tournament_id, number, packet_id) VALUES (?, ?, ?)');
+const insertRoundStatement = db.prepare('INSERT INTO round (tournament_id, number, packet_id, exclude_from_individual) VALUES (?, ?, ?, ?)');
 const insertTeamStatement = db.prepare('INSERT INTO team (tournament_id, name, slug) VALUES (?, ?, ?)');
 const insertPlayerStatement = db.prepare('INSERT INTO player (team_id, name, slug) VALUES (?, ?, ?)');
 const insertGameStatement = db.prepare('INSERT INTO game (round_id, tossups_read, team_one_id, team_two_id) VALUES (?, ?, ?, ?)');
@@ -50,7 +50,7 @@ fs.readdir(tournamentsPath, (err, subFolders) => {
             try {
                 const tournament = JSON.parse(tournamentData);
                 const gamesFilePath = path.join(subFolderPath, gamesFolderName);
-                const { name, slug, set, location, level, start_date, end_date } = tournament;
+                const { name, slug, set, location, level, start_date, end_date, rounds_to_exclude_from_individual_stats } = tournament;
                 const { id: existingTournamentId } = findTournamentStatement.get(slug) || {};
 
                 if (!existingTournamentId) {         
@@ -83,13 +83,13 @@ fs.readdir(tournamentsPath, (err, subFolders) => {
                                 }
     
                                 try {
-                                    const roundNumber = parseInt(gameFile.split("_")[0]);
+                                    const roundNumber = parseInt(gameFile.split("_")[tournament.name.toLowerCase().includes("pace") ? 0 : 1]);
                                     const gameData = JSON.parse(gameDataContent);
     
                                     // update round dictionary if needed
                                     if (!roundDictionary[roundNumber]) {
                                         const { id: packetId } = findPacketStatement.get(questionSetId, gameData.packets);
-                                        const { lastInsertRowid: roundId } = insertRoundStatement.run(tournamentId, roundNumber, packetId);
+                                        const { lastInsertRowid: roundId } = insertRoundStatement.run(tournamentId, roundNumber, packetId, rounds_to_exclude_from_individual_stats?.find(r => r === roundNumber) ? 1 : 0);
     
                                         roundDictionary[roundNumber] = { packetId, roundId };
                                     }
@@ -149,9 +149,11 @@ fs.readdir(tournamentsPath, (err, subFolders) => {
                                             let teamId = teamDictionary[buzzes.find(({ result }) => result.value > 0).team.name];
                                             let bonusParts = bonusDictionary[bonusKey];
     
-                                            bonus.parts.forEach((part, index) => {
-                                                insertBonusPartDirectStatement.run(teamId, gameId, bonusParts.find(p => p.part_number === index + 1).id, part.controlled_points);
-                                            });
+                                            if (bonusParts.length) {
+                                                bonus.parts.forEach((part, index) => {
+                                                    insertBonusPartDirectStatement.run(teamId, gameId, bonusParts.find(p => p.part_number === index + 1).id, part.controlled_points);
+                                                });
+                                            }
                                         }
                                     });
                                 } catch (err) {
