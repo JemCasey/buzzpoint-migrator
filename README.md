@@ -17,5 +17,19 @@ This tool ingests MODAQ packet and game files into a sqlite database.
 4. Then, in each question set folder, add a folder called *packet_files* and insert the MODAQ packet json files for that question set.
 5. In your *data/tournaments* folder, add folders for each of the tournaments that you'd like to add to the database. In each tournament folder, add an *index.json* file in the following format:
 ```json
-
+{
+    "name": "2023 Chicago Open",
+    "slug": "2023-chicago-open",
+    "set": "2023 Chicago Open",
+    "location": "Northwestern University",
+    "level": "Open",
+    "start_date": "2023-08-05",
+    "end_date": "2023-08-05",
+    "rounds_to_exclude_from_individual_stats": [
+        16,
+        17
+    ]
+}
 ```
+5. Then, in each tournament folder, add a folder called *game_files* and insert the qbj files. Each files name should start with the round number then an underscore, e.g. *1_Team_One_Team_Two.qbj*
+6. After you've added all the files you'd like to import, run `npm run initDB` to populate the database.
