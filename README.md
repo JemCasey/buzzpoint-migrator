@@ -31,5 +31,5 @@ This tool ingests MODAQ packet and game files into a sqlite database.
     ]
 }
 ```
-5. Then, in each tournament folder, add a folder called *game_files* and insert the qbj files. Each files name should start with the round number then an underscore, e.g. *1_Team_One_Team_Two.qbj*
+5. Then, in each tournament folder, add a folder called *game_files* and insert the qbj files. Each files name should start with the string "Round_", then the round number, then an underscore, e.g. *Round_1_Team_One_Team_Two.qbj*
 6. After you've added all the files you'd like to import, run `npm run initDB` to populate the database.
