@@ -13,13 +13,78 @@ db.exec(`
   )
 `);
 
+// Create the question_set_edition table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS question_set_edition (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    question_set_id INTEGER,
+    name TEXT,
+    slug TEXT,
+    date DATE,
+    FOREIGN KEY (question_set_id) REFERENCES question_set (id) ON DELETE CASCADE
+  )
+`);
+
 // Create the packet table
 db.exec(`
   CREATE TABLE IF NOT EXISTS packet (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    question_set_id INTEGER,
+    question_set_edition_id INTEGER,
     name TEXT,
-    FOREIGN KEY (question_set_id) REFERENCES question_set (id) ON DELETE CASCADE
+    FOREIGN KEY (question_set_edition_id) REFERENCES question_set_edition (id) ON DELETE CASCADE
+  )
+`);
+
+// Create the packet_question table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS packet_question (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    packet_id INTEGER,
+    question_number INTEGER,
+    question_id INTEGER,
+    FOREIGN KEY (packet_id) REFERENCES packet (id) ON DELETE CASCADE
+    FOREIGN KEY (question_id) REFERENCES question (id) ON DELETE CASCADE
+  )
+`);
+
+// Create the question table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS question (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT,
+    metadata TEXT,
+    author TEXT,
+    editor TEXT,
+    category TEXT,
+    category_slug TEXT,
+    subcategory TEXT,
+    subcategory_slug TEXT,
+    subsubcategory TEXT,
+    category_main TEXT GENERATED ALWAYS AS (case when category = subcategory then category else (category || ' - ' || subcategory) end),
+    category_main_slug TEXT GENERATED ALWAYS AS (case when category_slug = subcategory_slug then category_slug else (category_slug || '-' || subcategory_slug) end),
+    category_full TEXT GENERATED ALWAYS AS (case when subcategory is null then category else (category || ' - ' || subcategory || case when subsubcategory is null then '' else (' - ' || subsubcategory) end) end) STORED
+  )
+`);
+
+// creates tossup hash table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS tossup_hash (
+    hash TEXT PRIMARY KEY,
+    question_id INT,
+    tossup_id INT,
+    FOREIGN KEY (question_id) REFERENCES question (id) ON DELETE CASCADE,
+    FOREIGN KEY (tossup_id) REFERENCES tossup (id) ON DELETE CASCADE
+  )
+`);
+
+// creates bonus hash table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS bonus_hash (
+    hash TEXT PRIMARY KEY,
+    question_id INT,
+    bonus_id INT,
+    FOREIGN KEY (question_id) REFERENCES question (id) ON DELETE CASCADE,
+    FOREIGN KEY (bonus_id) REFERENCES bonus (id) ON DELETE CASCADE
   )
 `);
 
@@ -27,19 +92,10 @@ db.exec(`
 db.exec(`
   CREATE TABLE IF NOT EXISTS tossup (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    packet_id INTEGER,
-    question_number INTEGER,
+    question_id INT,
     question TEXT,
     answer TEXT,
-    slug TEXT,
-    metadata TEXT,
-    author TEXT,
-    editor TEXT,
-    category TEXT,
-    subcategory TEXT,
-    subsubcategory TEXT,
-    category_full TEXT GENERATED ALWAYS AS (case when subcategory is null then category else (category || ' - ' || subcategory || case when subsubcategory is null then '' else (' - ' || subsubcategory) end) end) STORED,
-    FOREIGN KEY (packet_id) REFERENCES packet (id) ON DELETE CASCADE
+    FOREIGN KEY (question_id) REFERENCES question (id) ON DELETE CASCADE
   )
 `);
 
@@ -47,19 +103,10 @@ db.exec(`
 db.exec(`
   CREATE TABLE IF NOT EXISTS bonus (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    packet_id INTEGER,
-    question_number INTEGER,
+    question_id INT,
     leadin TEXT,
     leadin_sanitized TEXT,
-    slug TEXT,
-    metadata TEXT,
-    author TEXT,
-    editor TEXT,
-    category TEXT,
-    subcategory TEXT,
-    subsubcategory TEXT,
-    category_full TEXT GENERATED ALWAYS AS (case when subcategory is null then category else (category || ' - ' || subcategory || case when subsubcategory is null then '' else (' - ' || subsubcategory) end) end) STORED,
-    FOREIGN KEY (packet_id) REFERENCES packet (id) ON DELETE CASCADE
+    FOREIGN KEY (question_id) REFERENCES question (id) ON DELETE CASCADE
   )
 `);
 
@@ -85,12 +132,12 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     slug TEXT,
-    question_set_id INTEGER,
+    question_set_edition_id INTEGER,
     location TEXT,
     level TEXT,
     start_date DATE,
     end_date DATE,
-    FOREIGN KEY (question_set_id) REFERENCES question_set (id) ON DELETE CASCADE
+    FOREIGN KEY (question_set_edition_id) REFERENCES question_set_edition (id) ON DELETE CASCADE
   )
 `);
 
