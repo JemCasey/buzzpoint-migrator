@@ -8,7 +8,7 @@ const slugify = require('slugify');
 const { existsSync } = require('fs');
 const fs = require('fs/promises');
 const path = require('path');
-const { parseMetadata } = require('./metadataUtils');
+const { parseMetadata } = require('./metadata-utils');
 const crypto = require('crypto');
 
 require('dotenv').config();
@@ -25,9 +25,9 @@ const insertQuestionSetEditionStatement = db.prepare('INSERT INTO question_set_e
 const insertPacketStatement = db.prepare('INSERT INTO packet (question_set_edition_id, name) VALUES (?, ?)');
 const insertPacketQuestionStatement = db.prepare('INSERT INTO packet_question(packet_id, question_number, question_id) VALUES (?, ?, ?)');
 const insertQuestionStatement = db.prepare('INSERT INTO question (slug, metadata, author, editor, category, category_slug, subcategory, subcategory_slug, subsubcategory) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-const insertTossupStatement = db.prepare('INSERT INTO tossup (question_id, question, answer) VALUES (?, ?, ?)');
+const insertTossupStatement = db.prepare('INSERT INTO tossup (question_id, question, answer, answer_sanitized, answer_primary) VALUES (?, ?, ?, ?, ?)');
 const insertBonusStatement = db.prepare('INSERT INTO bonus (question_id, leadin, leadin_sanitized) VALUES (?, ?, ?)');
-const insertBonusPartStatement = db.prepare('INSERT INTO bonus_part (bonus_id, part_number, part, part_sanitized, answer, answer_sanitized, value, difficulty_modifier) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+const insertBonusPartStatement = db.prepare('INSERT INTO bonus_part (bonus_id, part_number, part, part_sanitized, answer, answer_sanitized, answer_primary, value, difficulty_modifier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
 const findQuestionSetStatement = db.prepare('SELECT id FROM question_set WHERE slug = ?');
 const findQuestionSetEditionStatement = db.prepare('SELECT question_set_edition.id FROM question_set_edition JOIN question_set ON question_set_id = question_set.id WHERE question_set.slug = ? AND question_set_edition.slug = ? ');
 const deleteQuestionSetEditionStatement = db.prepare('DELETE FROM question_set_edition WHERE id = ?');
@@ -50,13 +50,20 @@ const getHash = (questionText) => {
     return crypto.createHash('md5').update(questionText).digest('hex');
 }
 
-const insertTossup = (packetId, questionNumber, question, answer, answerSlug, metadata, author, editor, category, subcategory, subsubcategory) => {
+const insertTossup = (packetId, questionNumber, question, answer, answer_sanitized, answerSlug, metadata, author, editor, category, subcategory, subsubcategory, slugDictionary) => {
     let questionHash = getHash(`${question}${answer}${metadata}`);
     let { questionId, tossupId } = findTossupStatement.get(questionHash) || {};
     
     if (!questionId) {
+        if (slugDictionary[answerSlug]) {
+            slugDictionary[answerSlug] += 1;
+            answerSlug = answerSlug + '-' + slugDictionary[answerSlug];
+        } else {
+            slugDictionary[answerSlug] = 1;
+        }
+
         questionId = insertQuestionStatement.run(answerSlug, metadata, author, editor, category, category ? slugify(category.toLowerCase()) : null, subcategory, subcategory ? slugify(subcategory.toLowerCase()) : null, subsubcategory).lastInsertRowid;
-        tossupId = insertTossupStatement.run(questionId, question, answer).lastInsertRowid;
+        tossupId = insertTossupStatement.run(questionId, question, answer, answer_sanitized, shortenAnswerline(answer_sanitized)).lastInsertRowid;
         insertTossupHashStatement.run(questionHash, questionId, tossupId);
     }
 
@@ -65,16 +72,28 @@ const insertTossup = (packetId, questionNumber, question, answer, answerSlug, me
     return tossupId;
 }
 
-const insertBonus = (packetId, questionNumber, leadin, leadin_sanitized, answerSlug, metadata, author, editor, category, subcategory, subsubcategory, answers, answers_sanitized, parts, parts_sanitized, values, difficultyModifiers) => {
+const insertBonus = (packetId, questionNumber, leadin, leadin_sanitized, answerSlug, metadata, author, editor, category, subcategory, subsubcategory, answers, answers_sanitized, parts, parts_sanitized, values, difficultyModifiers, slugDictionary) => {
     let questionHash = getHash(`${leadin}${parts.join('')}${answers.join('')}${metadata}`);
     let { questionId, bonusId } = findBonusStatement.get(questionHash) || {};
     
     if (!questionId) {
+        if (slugDictionary[answerSlug]) {
+            slugDictionary[answerSlug] += 1;
+            answerSlug = answerSlug + '-' + slugDictionary[answerSlug];
+        } else {
+            slugDictionary[answerSlug] = 1;
+        }
+
         questionId = insertQuestionStatement.run(answerSlug, metadata, author, editor, category, category ? slugify(category.toLowerCase()) : null, subcategory, subcategory ? slugify(subcategory.toLowerCase()) : null, subsubcategory).lastInsertRowid;
         bonusId = insertBonusStatement.run(questionId, leadin, leadin_sanitized).lastInsertRowid;
         
         for (let i = 0; i < answers.length; i++) {
-            insertBonusPartStatement.run(bonusId, i + 1, parts[i], parts_sanitized ? parts_sanitized[i] : shortenAnswerline(removeTags(parts[i])), answers[i], answers_sanitized ? answers_sanitized[i] : shortenAnswerline(removeTags(answers[i])), values[i], difficultyModifiers ? difficultyModifiers[i] : null);
+            insertBonusPartStatement.run(bonusId, i + 1, 
+                parts[i], parts_sanitized ? parts_sanitized[i] : removeTags(parts[i]), 
+                answers[i], answers_sanitized ? answers_sanitized[i] : removeTags(answers[i]), 
+                answers_sanitized ? shortenAnswerline(answers_sanitized[i]) : shortenAnswerline(removeTags(answers[i])), 
+                values ? values[i] : null,
+                difficultyModifiers ? difficultyModifiers[i] : null);
         }
 
         insertBonusHashStatement.run(questionHash, questionId, bonusId);
@@ -91,9 +110,9 @@ const migrateQuestionSets = async () => {
 
         for (const subFolder of subFolders) {
             const subFolderPath = path.join(questionSetsPath, subFolder);
-    
             const indexPath = path.join(subFolderPath, 'index.json');
-    
+            let slugDictionary = {};
+
             if (!existsSync(indexPath)) {
                 console.log(`Skipping ${subFolder} as 'index.json' file not found.`);
                 continue;
@@ -101,7 +120,6 @@ const migrateQuestionSets = async () => {
     
             try {
                 const questionSetData = await fs.readFile(indexPath, 'utf8');
-    
                 const questionSet = JSON.parse(questionSetData);
                 const editionsPath = path.join(subFolderPath, editionsFolderName);
                 const { name, slug, difficulty } = questionSet;
@@ -166,20 +184,24 @@ const migrateQuestionSets = async () => {
                                             const packetData = JSON.parse(packetDataContent);
                                             const { lastInsertRowid: packetId } = insertPacketStatement.run(questionSetEditionId, packetName);
             
-                                            packetData.tossups.forEach(({ question, answer, metadata }, index) => {
+                                            packetData.tossups.forEach(({ question, answer, answer_sanitized, metadata }, index) => {
                                                 const { author, category, subcategory, subsubcategory, editor } = parseMetadata(metadata, questionSet.metadataStyle);
+                                                const sanitizedAnswer = answer_sanitized ?? removeTags(answer);
+                                                
                                                 insertTossup(
                                                     packetId, 
                                                     index + 1, 
                                                     question, 
-                                                    answer, 
+                                                    answer,
+                                                    sanitizedAnswer,
                                                     slugify(shortenAnswerline(removeTags(answer)).slice(0, 50), slugifyOptions), 
                                                     metadata, 
                                                     author, 
                                                     editor, 
                                                     category, 
                                                     subcategory, 
-                                                    subsubcategory
+                                                    subsubcategory,
+                                                    slugDictionary
                                                 );
                                             });
             
@@ -203,7 +225,8 @@ const migrateQuestionSets = async () => {
                                                     parts, 
                                                     parts_sanitized, 
                                                     values, 
-                                                    difficultyModifiers
+                                                    difficultyModifiers,
+                                                    slugDictionary
                                                 );
                                             });
                                         } catch (err) {

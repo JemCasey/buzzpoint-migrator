@@ -2,7 +2,7 @@ const subcategoryMap = require("./subcat-to-cat.json");
 
 const metadataTypes = {
     justSubcategory: 1,
-    fullAuthorNameAndSubcategory: 2,
+    authorAndSubcategory: 2,
     nscStyle: 3,
     nasatStyle: 4
 }
@@ -14,7 +14,7 @@ const parseMetadata = (metadata, metadataType) => {
         if (metadataType === metadataTypes.justSubcategory) {
             subcategory = metadata;
             category = subcategoryMap[subcategory] || subcategory;
-        } else if (metadataType === metadataTypes.fullAuthorNameAndSubcategory) {
+        } else if (metadataType === metadataTypes.authorAndSubcategory) {
             const regex = new RegExp(/(.*?), (.*)/);
             const metadataMatch = metadata?.match(regex) || [];
             const rawCategory = metadataMatch[2];

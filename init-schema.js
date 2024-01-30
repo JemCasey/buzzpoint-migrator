@@ -95,6 +95,8 @@ db.exec(`
     question_id INT,
     question TEXT,
     answer TEXT,
+    answer_sanitized TEXT,
+    answer_primary TEXT,
     FOREIGN KEY (question_id) REFERENCES question (id) ON DELETE CASCADE
   )
 `);
@@ -120,6 +122,7 @@ db.exec(`
     part_sanitized TEXT,
     answer TEXT,
     answer_sanitized TEXT,
+    answer_primary TEXT,
     value INTEGER,
     difficulty_modifier TEXT,
     FOREIGN KEY (bonus_id) REFERENCES bonus (id) ON DELETE CASCADE

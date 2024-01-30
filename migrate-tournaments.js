@@ -148,9 +148,9 @@ const migrateTournaments = async () => {
                         // update game dictionary if needed
                         if (!gameDictionary[gameId]) {
                             // just gotta hard-code tossups_read as 20. hopefully won't have to use again
-                            const { lastInsertRowid: gameId } = insertGameStatement.run(roundDictionary[round].roundId, 20, teamDictionary[team], teamDictionary[opponent]);
+                            const { lastInsertRowid: insertedGameId } = insertGameStatement.run(roundDictionary[round].roundId, 20, teamDictionary[team], teamDictionary[opponent]);
 
-                            gameDictionary[buzz.gameId] = gameId;
+                            gameDictionary[gameId] = insertedGameId;
                         }
 
                         insertBuzzStatement.run(playerDictionary[playerKey], gameDictionary[gameId], tossupDictionary[tossupKey], buzzPosition, value);
@@ -161,7 +161,7 @@ const migrateTournaments = async () => {
                     const bonuses = bonusesContent.split('\n').slice(1);
 
                     for (let bonusPartDirect of bonuses) {
-                        const [rawGameId, rawRound, , rawBonus, team, , , , part, , rawValue] = bonusPartDirect.split(',');
+                        const [rawGameId, rawRound, , rawBonus, team, , , , part, , , rawValue] = bonusPartDirect.split(',');
                         const gameId = parseInt(rawGameId);
                         const round = parseInt(rawRound);
                         const value = parseInt(rawValue);
