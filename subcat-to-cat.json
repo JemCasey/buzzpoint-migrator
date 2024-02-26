@@ -10,6 +10,7 @@
     "Long Fiction": "Literature",
     "Short Fiction": "Literature",
     "Misc Literature": "Literature",
+    "World/Other Literature": "Literature",
     "US History": "History",
     "American History": "History",
     "Ancient History": "History",
@@ -18,6 +19,7 @@
     "Other History": "History",
     "Historiography": "History",
     "Archaeology": "History",
+    "Ancient/Other History": "History",
     "Biology": "Science",
     "Chemistry": "Science",
     "Physics": "Science",
@@ -57,5 +59,6 @@
     "Current Events": "Current Events",
     "Geography": "Geography",
     "Other Academic": "Other Academic",
+    "Geography/Current Events/Other Academic": "Other Academic",
     "Trash": "Trash"
 }
