@@ -60,8 +60,8 @@ db.exec(`
     subcategory TEXT,
     subcategory_slug TEXT,
     subsubcategory TEXT,
-    category_main TEXT GENERATED ALWAYS AS (case when category = subcategory then category else (category || ' - ' || subcategory) end),
-    category_main_slug TEXT GENERATED ALWAYS AS (case when category_slug = subcategory_slug then category_slug else (category_slug || '-' || subcategory_slug) end),
+    category_main TEXT GENERATED ALWAYS AS (case when category = subcategory OR subcategory is null then category else (category || ' - ' || subcategory) end),
+    category_main_slug TEXT GENERATED ALWAYS AS (case when category_slug = subcategory_slug or subcategory_slug is null then category_slug else (category_slug || '-' || subcategory_slug) end),
     category_full TEXT GENERATED ALWAYS AS (case when subcategory is null then category else (category || ' - ' || subcategory || case when subsubcategory is null then '' else (' - ' || subsubcategory) end) end) STORED
   )
 `);
