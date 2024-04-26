@@ -1,3 +1,5 @@
 node_modules
-data
+data*
 database.db
+
+.DS_Store
