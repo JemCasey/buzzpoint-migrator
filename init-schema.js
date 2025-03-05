@@ -221,3 +221,14 @@ db.exec(`
     FOREIGN KEY (bonus_part_id) REFERENCES bonus_part (id) ON DELETE CASCADE
   )
 `);
+
+// Add indexes
+db.exec(`
+  CREATE INDEX bonus_part_idx
+    ON bonus_part(bonus_id, difficulty_modifier)
+`);
+
+db.exec(`
+  CREATE INDEX bonus_part_direct_idx
+    ON bonus_part_direct(bonus_part_id, game_id)
+`);
